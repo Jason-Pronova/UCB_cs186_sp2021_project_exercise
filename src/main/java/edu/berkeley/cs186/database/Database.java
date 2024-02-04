@@ -26,6 +26,7 @@ import edu.berkeley.cs186.database.recovery.ARIESRecoveryManager;
 import edu.berkeley.cs186.database.recovery.DummyRecoveryManager;
 import edu.berkeley.cs186.database.recovery.RecoveryManager;
 import edu.berkeley.cs186.database.table.*;
+import edu.berkeley.cs186.database.table.Record;
 import edu.berkeley.cs186.database.table.stats.TableStats;
 
 import java.io.*;
@@ -376,14 +377,14 @@ public class Database implements AutoCloseable {
             this.schema = new Schema();
         }
 
-        TableMetadata(Record record) {
+        TableMetadata(edu.berkeley.cs186.database.table.Record record) {
             tableName = record.getValue(0).getString();
             partNum = record.getValue(1).getInt();
             pageNum = record.getValue(2).getLong();
             schema = Schema.fromBytes(ByteBuffer.wrap(record.getValue(3).toBytes()));
         }
 
-        Record toRecord() {
+        edu.berkeley.cs186.database.table.Record toRecord() {
             byte[] schemaBytes = schema.toBytes();
             byte[] padded = new byte[MAX_SCHEMA_SIZE];
             System.arraycopy(schemaBytes, 0, padded, 0, schemaBytes.length);
@@ -414,11 +415,11 @@ public class Database implements AutoCloseable {
         return result;
     }
 
-    public List<Record> scanTableMetadataRecords() {
-        List<Record> result = new ArrayList<>();
+    public List<edu.berkeley.cs186.database.table.Record> scanTableMetadataRecords() {
+        List<edu.berkeley.cs186.database.table.Record> result = new ArrayList<>();
         synchronized(tableMetadata) {
             for(RecordId rid: (Iterable<RecordId>) tableMetadata::ridIterator) {
-                Record record = tableMetadata.getRecord(rid);
+                edu.berkeley.cs186.database.table.Record record = tableMetadata.getRecord(rid);
                 result.add(record);
             }
         }
@@ -459,7 +460,7 @@ public class Database implements AutoCloseable {
         List<Pair<RecordId, BPlusTreeMetadata>> result = new ArrayList<>();
         synchronized(indexMetadata) {
             for(RecordId rid: (Iterable<RecordId>) indexMetadata::ridIterator) {
-                Record record = indexMetadata.getRecord(rid);
+                edu.berkeley.cs186.database.table.Record record = indexMetadata.getRecord(rid);
                 BPlusTreeMetadata metadata = new BPlusTreeMetadata(record);
                 result.add(new Pair<>(rid, metadata));
             }
@@ -467,11 +468,11 @@ public class Database implements AutoCloseable {
         return result;
     }
 
-    public List<Record> scanIndexMetadataRecords() {
-        List<Record> result = new ArrayList<>();
+    public List<edu.berkeley.cs186.database.table.Record> scanIndexMetadataRecords() {
+        List<edu.berkeley.cs186.database.table.Record> result = new ArrayList<>();
         synchronized(indexMetadata) {
             for(RecordId rid: (Iterable<RecordId>) indexMetadata::ridIterator) {
-                Record record = indexMetadata.getRecord(rid);
+                edu.berkeley.cs186.database.table.Record record = indexMetadata.getRecord(rid);
                 result.add(record);
             }
         }
