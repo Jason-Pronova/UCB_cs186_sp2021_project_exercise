@@ -81,8 +81,10 @@ class InnerNode extends BPlusNode {
     @Override
     public LeafNode get(DataBox key) {
         // TODO(proj2): implement
-
-        return null;
+        int index = numLessThanEqual(key, keys);
+        // 因为B+树在查找时,索引到中间结点时会按个去查找匹配,如果我们在查找前先过滤掉比我们大的结点,这样可以减少一些查找成本
+        BPlusNode child = getChild(index); // 调用内部结点 根据页码找下一结点的方法
+        return child.get(key); // 内部节点则返回 child get 去自动找到叶子结点
     }
 
     // See BPlusNode.getLeftmostLeaf.
