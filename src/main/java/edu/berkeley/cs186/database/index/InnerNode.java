@@ -93,7 +93,13 @@ class InnerNode extends BPlusNode {
         assert(children.size() > 0);
         // TODO(proj2): implement
 
-        return null;
+        BPlusNode child = this; // 修改类型,定义起点
+
+        // 循序类型匹配,只找内部结点
+        while (child.getClass() != LeafNode.class) {
+            child = ((InnerNode)child).getChild(0); // 因为内部节点的存储方式都是用List,所以这里每次循环都是取最左边的结点来查找,靠循环递归下去
+        }
+        return (LeafNode) child;
     }
 
     // See BPlusNode.put.
