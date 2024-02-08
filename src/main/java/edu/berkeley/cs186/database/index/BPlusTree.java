@@ -147,7 +147,10 @@ public class BPlusTree {
 
         // TODO(proj2): implement
 
-        return root.get(key).getKey(key);
+        if(root != null) {
+            return root.get(key).getKey(key);
+        }
+        return Optional.empty();
     }
 
     /**
@@ -168,7 +171,7 @@ public class BPlusTree {
             l.add(rid.get());
             return l.iterator();
         } else {
-            return Collections.emptyIterator();
+            return new BPlusTreeIterator(key);
         }
     }
 
@@ -203,7 +206,7 @@ public class BPlusTree {
 
         // TODO(proj2): Return a BPlusTreeIterator.
 
-        return Collections.emptyIterator();
+        return new BPlusTreeIterator();
     }
 
     /**
@@ -236,7 +239,7 @@ public class BPlusTree {
 
         // TODO(proj2): Return a BPlusTreeIterator.
 
-        return Collections.emptyIterator();
+        return new BPlusTreeIterator(key);
     }
 
     /**
@@ -257,8 +260,17 @@ public class BPlusTree {
         // Note: You should NOT update the root variable directly.
         // Use the provided updateRoot() helper method to change
         // the tree's root if the old root splits.
-
-        return;
+        Optional<Pair<DataBox, Long>> o = root.put(key, rid);
+        if (!o.isPresent()) {
+            return;
+        }
+        Pair<DataBox, Long> p = o.get();
+        List<DataBox> keys = new ArrayList<>();
+        keys.add(p.getFirst());
+        List<Long> children = new ArrayList<>();
+        children.add(root.getPage().getPageNum());
+        children.add(p.getSecond());
+        updateRoot(new InnerNode(metadata, bufferManager, keys, children, lockContext));
     }
 
     /**
@@ -287,7 +299,30 @@ public class BPlusTree {
         // Use the provided updateRoot() helper method to change
         // the tree's root if the old root splits.
 
-        return;
+        // 获得叶子结点来判断是否为空树
+        LeafNode left = this.root.getLeftmostLeaf();
+        if (left != this.root) { // 叶子下的迭代器能后进行 hasNext 证明有数据
+            throw new BPlusTreeException("cannot bulk load into nonempty tree");
+        }
+
+        while (data.hasNext()) {
+            // 递归往下走
+            Optional<Pair<DataBox, Long>> optional = this.root.bulkLoad(data, fillFactor);
+            if (optional.isPresent()) {
+                Pair<DataBox, Long> p = optional.get();
+
+                // 组装新root节点的keys和children
+                List<DataBox> keys = new ArrayList<>();
+                keys.add(p.getFirst());
+
+                List<Long> children = new ArrayList<>();
+                children.add(root.getPage().getPageNum());
+                children.add(p.getSecond());
+
+                // 使用官方推荐的updateRoot来更新结点,不要用直接赋值的方式
+                updateRoot(new InnerNode(metadata, bufferManager, keys, children, lockContext));
+            }
+        }
     }
 
     /**
@@ -308,7 +343,7 @@ public class BPlusTree {
 
         // TODO(proj2): implement
 
-        return;
+        this.root.remove(key);
     }
 
     // Helpers /////////////////////////////////////////////////////////////////
@@ -421,19 +456,67 @@ public class BPlusTree {
     // Iterator ////////////////////////////////////////////////////////////////
     private class BPlusTreeIterator implements Iterator<RecordId> {
         // TODO(proj2): Add whatever fields and constructors you want here.
+        private Iterator<RecordId> idIterator;
+        private LeafNode currLeaf;
+
+        public BPlusTreeIterator(){
+            currLeaf = root.getLeftmostLeaf();
+            idIterator = root.getLeftmostLeaf().scanAll();
+        }
+        public BPlusTreeIterator(DataBox key) {
+            currLeaf = root.get(key);
+            idIterator = currLeaf.scanGreaterEqual(key);
+        }
 
         @Override
         public boolean hasNext() {
             // TODO(proj2): implement
 
+            if (idIterator == null) {
+                return false;
+            }
+
+            if (idIterator.hasNext()) {
+                return true;
+            }
+
+            Optional<LeafNode> sibling = currLeaf.getRightSibling();
+            while (sibling.isPresent()) {
+                // 有可能存在前面的LeafNode为空，但右边的LeafNode还有值的情况
+                // 所以需要使用循环来遍历有的LeafNode
+                /**
+                 *
+                 *                               inner
+                 *                               +----+----+----+----+
+                 *                               | 10 | 20 |    |    |
+                 *                               +----+----+----+----+
+                 *                              /     |     \
+                 *                         ____/      |      \____
+                 *                        /           |           \
+                 *   +----+----+----+----+  +----+----+----+----+  +----+----+----+----+
+                 *   |    |    |    |    |->| 11 | 12 | 13 |    |->| 21 | 22 | 23 |    |
+                 *   +----+----+----+----+  +----+----+----+----+  +----+----+----+----+
+                 *   leaf0                  leaf1                  leaf2
+                 */
+                currLeaf = sibling.get();
+                idIterator = currLeaf.scanAll();
+                if (idIterator.hasNext()) {
+                    return true;
+                } else {
+                    // 遍历其rightSibling
+                    sibling = currLeaf.getRightSibling();
+                }
+            }
             return false;
         }
 
         @Override
         public RecordId next() {
             // TODO(proj2): implement
-
-            throw new NoSuchElementException();
+            if (idIterator.hasNext()) {
+                return idIterator.next();
+            }
+            return null;
         }
     }
 }

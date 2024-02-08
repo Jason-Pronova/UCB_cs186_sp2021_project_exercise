@@ -164,7 +164,51 @@ class LeafNode extends BPlusNode {
     public Optional<Pair<DataBox, Long>> put(DataBox key, RecordId rid) {
         // TODO(proj2): implement
 
-        return Optional.empty();
+        int insertIndex = 0;
+        for (; insertIndex < keys.size(); ++insertIndex){
+            if (key.equals(keys.get(insertIndex))){
+                // find duplicate key
+                throw new BPlusTreeException("found duplicate key in leaf node");
+            }else if(key.compareTo(keys.get(insertIndex)) < 0){
+                break;
+            }
+        }
+
+
+        // determine whether cause overflow
+        if(keys.size() + 1 <= 2 * metadata.getOrder()){
+            keys.add(insertIndex, key);
+            rids.add(insertIndex, rid);
+            sync();
+            return Optional.empty();
+        }else{
+            //need to split
+            keys.add(insertIndex, key);
+            rids.add(insertIndex, rid);
+
+            int d = metadata.getOrder();
+            List<DataBox> leftKeys = keys.subList(0, d);
+            List<DataBox> rightKeys = keys.subList(d, 2 * d + 1);
+            List<RecordId> leftRids = rids.subList(0, d);
+            List<RecordId> rightRids = rids.subList(d, 2 * d + 1);
+
+
+            this.keys = leftKeys;
+            this.rids = leftRids;
+
+
+            // new right sibling
+            LeafNode new_Node = new LeafNode(metadata, bufferManager,rightKeys, rightRids,rightSibling, treeContext);
+            // link current node and new right sibling
+            rightSibling = Optional.of(new_Node.page.getPageNum());
+
+            // persist current node and new node to disk
+            sync();
+
+
+            return Optional.of(new Pair<>(rightKeys.get(0), new_Node.page.getPageNum()));
+
+        }
     }
 
     // See BPlusNode.bulkLoad.
@@ -173,15 +217,50 @@ class LeafNode extends BPlusNode {
             float fillFactor) {
         // TODO(proj2): implement
 
+        int maxCapacity = (int) Math.ceil(2 * metadata.getOrder() * fillFactor);
+        while (data.hasNext()){
+            Pair<DataBox, RecordId> nextPair = data.next();
+            keys.add(nextPair.getFirst());
+            rids.add(nextPair.getSecond());
+            if (keys.size() >= maxCapacity){
+                break;
+            }
+        }
+        if (data.hasNext()){
+            // if current node overflow, create next leafNode with one recordId, and return
+            // so other data will fill with new node
+            List<DataBox> nKeys = new ArrayList<>();
+            List<RecordId> nRids = new ArrayList<>();
+            Pair<DataBox, RecordId> nextPair = data.next();
+            nKeys.add(nextPair.getFirst());
+            nRids.add(nextPair.getSecond());
+            LeafNode nLeafNode = new LeafNode(metadata, bufferManager, nKeys, nRids, Optional.empty(),treeContext);
+            rightSibling = Optional.of(nLeafNode.page.getPageNum());
+            sync();
+            nLeafNode.sync();
+            return Optional.of(new Pair<>(nKeys.get(0), nLeafNode.page.getPageNum()));
+        }
+        sync();
         return Optional.empty();
+
     }
 
     // See BPlusNode.remove.
     @Override
     public void remove(DataBox key) {
         // TODO(proj2): implement
+        int pos = keys.indexOf(key); // 找到需要删除的元素所在位置pos
+        if (pos == -1) {
+            // 没有对应的元素，do nothing，直接返回
+            return;
+        }
 
-        return;
+        keys.remove(pos);
+        rids.remove(pos);
+
+        sync();
+
+
     }
 
     // Iterators ///////////////////////////////////////////////////////////////
