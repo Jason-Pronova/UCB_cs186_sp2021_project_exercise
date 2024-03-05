@@ -176,6 +176,7 @@ public class TestBPlusTree {
         //    /   \
         // (2 4) (6 9)
         tree.put(new IntDataBox(2), new RecordId(2, (short) 2));
+        //tree.toDotPDFFile("tree.pdf");
         l = "((2 (2 2)) (4 (4 4)))";
         r = "((6 (6 6)) (9 (9 9)))";
         assertEquals(String.format("(%s 6 %s)", l, r), tree.toSexp());
@@ -184,6 +185,7 @@ public class TestBPlusTree {
         //     /  |  \
         // (2 4) (6) (7 9)
         tree.put(new IntDataBox(7), new RecordId(7, (short) 7));
+        //tree.toDotPDFFile("tree.pdf");
         l = "((2 (2 2)) (4 (4 4)))";
         String m = "((6 (6 6)))";
         r = "((7 (7 7)) (9 (9 9)))";
@@ -195,6 +197,7 @@ public class TestBPlusTree {
         //    /   \   /   \
         // (2 4) (6) (7) (8 9)
         tree.put(new IntDataBox(8), new RecordId(8, (short) 8));
+        //tree.toDotPDFFile("tree.pdf");
         String ll = "((2 (2 2)) (4 (4 4)))";
         String lr = "((6 (6 6)))";
         String rl = "((7 (7 7)))";
@@ -224,6 +227,7 @@ public class TestBPlusTree {
         //  /   \    /   \    /   \
         // (2) (3) (4 5) (6) (7) (8 9)
         tree.put(new IntDataBox(5), new RecordId(5, (short) 5));
+        //tree.toDotPDFFile("tree.pdf");
         ll = "((2 (2 2)))";
         lr = "((3 (3 3)))";
         String ml = "((4 (4 4)) (5 (5 5)))";
@@ -394,6 +398,7 @@ public class TestBPlusTree {
         //   /   \    /   \    /   \
         // (   ) ( ) (   ) ( ) ( ) (   )
         tree.remove(new IntDataBox(8));
+        tree.toDotPDFFile("tree.pdf");
         ll = "()";
         lr = "()";
         ml = "()";
@@ -439,6 +444,8 @@ public class TestBPlusTree {
                 for (int i = 0; i < keys.size(); ++i) {
                     tree.put(keys.get(i), rids.get(i));
                 }
+
+
 
                 // Test get.
                 for (int i = 0; i < keys.size(); ++i) {

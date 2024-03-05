@@ -182,6 +182,10 @@ class LeafNode extends BPlusNode {
             sync();
             return Optional.empty();
         }else{
+            // case 2: 插入后造成LeafNode分裂，应做好对应的维护工作
+            // 1. 创建一个新的LeafNode, 其rightSibling是原来LeafNode的rightSibling（如果有的话）
+            //    新LeafNode的keys和rids均为keys/rids.subList(mid, keys.size()); splitKey (mid)是包含在右边的叶节点中的。
+            // 2. 返回由splitKey和新LeafNode的PageNum组成的Pair
             //need to split
             keys.add(insertIndex, key);
             rids.add(insertIndex, rid);

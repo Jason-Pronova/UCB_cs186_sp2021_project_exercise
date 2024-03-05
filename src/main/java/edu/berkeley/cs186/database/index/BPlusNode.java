@@ -244,7 +244,7 @@ abstract class BPlusNode {
      * n.toDot() returns a fragment of a DOT file that draws the subtree rooted
      * at n.
      */
-    public abstract String toDot();
+    public abstract String  toDot();
 
     // Serialization ///////////////////////////////////////////////////////////
     /** n.toBytes() serializes n. */

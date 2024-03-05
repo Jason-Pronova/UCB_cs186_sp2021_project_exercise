@@ -118,8 +118,8 @@ class InnerNode extends BPlusNode {
             Long return_child = back_node.get().getSecond();
             int index_to_insert = numLessThanEqual(return_key, keys);
 
-            keys.add(index_to_insert, key);
-            children.add(index_to_insert, return_child);
+            keys.add(index_to_insert, return_key);
+            children.add(index_to_insert+1, return_child);
 
 
             // determine whether cause overflow
@@ -131,16 +131,27 @@ class InnerNode extends BPlusNode {
 
 
             assert(keys.size() == 2*d + 1);
-            List<DataBox> leftKeys = keys.subList(0, d);
+
             DataBox middleKey = keys.get(d);
-            List<DataBox> rightKeys = keys.subList(d + 1, 2*d + 1);
+            /*List<DataBox> middleKeys = keys.subList(d, d+1);*/
+
+            List<DataBox> leftKeys = keys.subList(0, d);
+            List<DataBox> rightKeys = keys.subList(d+1, keys.size());
             List<Long> leftChildren = children.subList(0, d + 1);
-            List<Long> rightChildren = children.subList(d + 1, 2*d + 2);
+            List<Long> rightChildren = children.subList(d + 1 , children.size());
 
             InnerNode n = new InnerNode(metadata, bufferManager, rightKeys, rightChildren, treeContext);
 
             this.keys = leftKeys;
             this.children = leftChildren;
+
+
+            /*List<Long> middleChildren = new ArrayList<>();
+            middleChildren.add(this.getPage().getPageNum());
+            middleChildren.add(n.getPage().getPageNum());
+            InnerNode split_node = new InnerNode(metadata, bufferManager, middleKeys, middleChildren, treeContext);*/
+
+
             sync();
 
             return Optional.of(new Pair<>(middleKey, n.getPage().getPageNum()));
