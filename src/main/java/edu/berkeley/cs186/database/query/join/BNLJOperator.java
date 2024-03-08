@@ -87,6 +87,16 @@ public class BNLJOperator extends JoinOperator {
          */
         private void fetchNextLeftBlock() {
             // TODO(proj3_part1): implement
+            if (this.leftSourceIterator.hasNext()) {
+                // 注意这里是getLeftSource().getSchema();
+                this.leftBlockIterator = QueryOperator.getBlockIterator(this.leftSourceIterator,
+                        BNLJOperator.this.getLeftSource().getSchema(),
+                        BNLJOperator.this.numBuffers-2); // maxPage=B-2, fetch up to B-2 pages
+                if (this.leftBlockIterator.hasNext()) {
+                    leftBlockIterator.markNext();
+                    this.leftRecord = this.leftBlockIterator.next();
+                }
+            }
         }
 
         /**
@@ -101,6 +111,15 @@ public class BNLJOperator extends JoinOperator {
          */
         private void fetchNextRightPage() {
             // TODO(proj3_part1): implement
+            if (this.rightSourceIterator.hasNext()) {
+                // 注意这里是getRightSource().getSchema();
+                this.rightPageIterator = QueryOperator.getBlockIterator(this.rightSourceIterator,
+                        BNLJOperator.this.getRightSource().getSchema(),
+                        1); // maxPage set to 1, cause only need to fetch 1 page;
+                if (rightPageIterator.hasNext()) {
+                    rightPageIterator.markNext(); // 为什么都要markNext()呢？
+                }
+            }
         }
 
         /**
@@ -113,7 +132,48 @@ public class BNLJOperator extends JoinOperator {
          */
         private Record fetchNextRecord() {
             // TODO(proj3_part1): implement
-            return null;
+            if (leftRecord == null) {
+                // The left source was empty, nothing to fetch
+                return null;
+            }
+
+            while (true) {
+                if (this.rightPageIterator.hasNext()) {
+                    // case 1: the right page iterator has a value to yield,
+                    // join it if there's a match
+                    Record rightRecord = this.rightPageIterator.next();
+                    if (compare(this.leftRecord, rightRecord) == 0) {
+                        return this.leftRecord.concat(rightRecord);
+                    }
+                } else if (this.leftBlockIterator.hasNext()) {
+                    // case 2: the right page iterator doesn't have a value to yield,
+                    // but the left block iterator does;
+                    // Advance left and reset right;
+                    this.leftRecord = this.leftBlockIterator.next();
+                    this.rightPageIterator.reset();
+                    this.rightPageIterator.markNext();
+                } else if (this.rightSourceIterator.hasNext()) {
+                    // case 3: neither right page nor left block iterator have values to yield
+                    // but there are more right pages.
+                    // fetch new right pages and reset left
+                    fetchNextRightPage();
+                    leftBlockIterator.reset();
+                    leftBlockIterator.markNext();
+                    leftRecord = leftBlockIterator.next();
+                } else if (this.leftSourceIterator.hasNext()) {
+                    // case 4: neither right page nor left block iterators have values to yield
+                    // nor are there more right pages (rightSourceIterator.hasNext() == false)
+                    // but there are still left blocks (leftSourceIterator.hasNext() == true)
+                    // fetch new left block, reset right
+                    fetchNextLeftBlock();
+                    this.rightSourceIterator.reset();
+                    rightSourceIterator.markNext();
+                    fetchNextRightPage();
+                } else {
+                    // if you are here then there are no more records to fetch
+                    return null;
+                }
+            }
         }
 
         /**
