@@ -14,7 +14,7 @@ import java.util.NoSuchElementException;
  * rightColumnName respectively using the Block Nested Loop Join algorithm.
  */
 public class BNLJOperator extends JoinOperator {
-    protected int numBuffers;
+    protected int numBuffers; //amount of usable buffer frames
 
     public BNLJOperator(QueryOperator leftSource,
                         QueryOperator rightSource,
@@ -52,7 +52,7 @@ public class BNLJOperator extends JoinOperator {
         // Iterator over all the records of the left source
         private Iterator<Record> leftSourceIterator;
         // Iterator over all the records of the right source
-        private BacktrackingIterator<Record> rightSourceIterator;
+        private BacktrackingIterator<Record> rightSourceIterator; //we need to reset the right iterator but not left iterator
         // Iterator over records in the current block of left pages
         private BacktrackingIterator<Record> leftBlockIterator;
         // Iterator over records in the current right page
@@ -87,13 +87,16 @@ public class BNLJOperator extends JoinOperator {
          */
         private void fetchNextLeftBlock() {
             // TODO(proj3_part1): implement
+            // 1.determining whether table scan iterator has next in left table
+            // 2. create BlockIterator(Array iterator), a new temp array is created
+            // 3. determining whether block scan iterator has next in current block
             if (this.leftSourceIterator.hasNext()) {
                 // 注意这里是getLeftSource().getSchema();
                 this.leftBlockIterator = QueryOperator.getBlockIterator(this.leftSourceIterator,
                         BNLJOperator.this.getLeftSource().getSchema(),
                         BNLJOperator.this.numBuffers-2); // maxPage=B-2, fetch up to B-2 pages
                 if (this.leftBlockIterator.hasNext()) {
-                    leftBlockIterator.markNext();
+                    leftBlockIterator.markNext(); //put the mark on the first record of current block for resetting
                     this.leftRecord = this.leftBlockIterator.next();
                 }
             }

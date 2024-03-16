@@ -53,11 +53,11 @@ public class SNLJOperator extends JoinOperator {
 
         public SNLJIterator() {
             super();
-            this.leftSourceIterator = getLeftSource().iterator();
+            this.leftSourceIterator = getLeftSource().iterator(); // get record iterator on the left wanted join table，just has different name compared to right
             if (leftSourceIterator.hasNext()) leftRecord = leftSourceIterator.next();
 
-            this.rightSourceIterator = getRightSource().backtrackingIterator();
-            this.rightSourceIterator.markNext();
+            this.rightSourceIterator = getRightSource().backtrackingIterator(); //generate concat iterator by default
+            this.rightSourceIterator.markNext(); // for resetting operation
         }
 
         /**

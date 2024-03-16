@@ -111,8 +111,7 @@ public class SortOperator extends QueryOperator {
     public Run mergeSortedRuns(List<Run> runs) {
         assert (runs.size() <= this.numBuffers - 1);
         // TODO(proj3_part1): implement
-        assert (runs.size() <= this.numBuffers - 1);
-        // (proj3_part1): implement
+
         PriorityQueue<Pair<Record, Integer>> pq = new PriorityQueue(new RecordPairComparator());
         Run sortedRun = makeRun();
 
@@ -187,6 +186,9 @@ public class SortOperator extends QueryOperator {
         Iterator<Record> sourceIterator = getSource().iterator();
 
         // TODO(proj3_part1): implement
+        // 1. divide the run into size of buffer frame called block
+        // 2.sort each block
+        // 3. if number of block greater than 1,
         List<Run> sortedRuns = new ArrayList<>();
         while (sourceIterator.hasNext()) {
             // initial pass
